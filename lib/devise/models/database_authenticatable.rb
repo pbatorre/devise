@@ -83,6 +83,31 @@ module Devise
         result
       end
 
+      # Update record attributes when
+      # 1) :current_password matches,
+      # 2) :password and :password_confirmation are not blank and matches
+      def update_password_only(params, *options)
+        current_password = params.delete(:current_password)
+        password = params[:password]
+        password_confirmation = params[:password_confirmation]
+
+        result = if (valid_password?(current_password) && password.present?)
+          update_attributes({
+            :password => password,
+            :password_confirmation => password_confirmation
+          }, *options)
+        else
+          self.assign_attributes(params, *options)
+          self.valid?
+          self.errors.add(:current_password, current_password.blank? ? :blank : :invalid) unless valid_password?(current_password)
+          self.errors.add(:password, :blank) if password.blank?
+          false
+        end
+
+        clean_up_passwords
+        result
+      end
+
       # Updates record attributes without asking for the current password.
       # Never allows a change to the current password. If you are using this
       # method, you should probably override this method to protect other

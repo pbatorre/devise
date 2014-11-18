@@ -154,6 +154,37 @@ class DatabaseAuthenticatableTest < ActiveSupport::TestCase
     assert_match "is invalid", user.errors[:current_password].join
   end
 
+  test 'should update password if current password is valid' do
+    user = create_user
+    assert user.update_password_only(current_password: '12345678',
+      password: 'pass4321', password_confirmation: 'pass4321')
+    assert user.reload.valid_password?('pass4321')
+  end
+
+  test 'should add an error to current password and password when both are blank' do
+    user = create_user
+    assert_not user.update_password_only(password: nil, password_confirmation: nil)
+    assert user.reload.valid_password?('12345678')
+    assert_match "can't be blank", user.errors[:current_password].join
+    assert_match "can't be blank", user.errors[:password].join
+  end
+
+  test 'should add an error to current password and current password is invalid and password is blank' do
+    user = create_user
+    assert_not user.update_password_only(current_password: 'pass4321', password: nil, password_confirmation: nil)
+    assert user.reload.valid_password?('12345678')
+    assert_match "is invalid", user.errors[:current_password].join
+    assert_match "can't be blank", user.errors[:password].join
+  end
+
+  test 'should add an error to password when password is blank' do
+    user = create_user
+    assert_not user.update_password_only(current_password: '12345678',
+      password: nil, password_confirmation: nil)
+    assert user.reload.valid_password?('12345678')
+    assert_match "can't be blank", user.errors[:password].join
+  end
+
   test 'should add an error to current password when it is blank' do
     user = create_user
     assert_not user.update_with_password(password: 'pass4321',
